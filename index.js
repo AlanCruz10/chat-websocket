@@ -3,11 +3,12 @@ const chatScreen = document.querySelector('.chat-container');
 const conectedUsersArea = document.querySelector('.chat-container');
 chatScreen.style.display = 'none';
 conectedUsersArea.style.display = 'none';
+const conectedUsers = document.getElementById('user_list');
 
 
 const socket = io();
 
-socket.on('user-connected', ( users ) => {
+socket.on('connected', ( users ) => {
     conectedUsers.innerHTML = '';
     for (const user in users) {
         conectedUsers.insertAdjacentHTML('beforeend',`<li>${user}</li>`);

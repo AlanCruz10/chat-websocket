@@ -3,7 +3,7 @@ const server = require('http').createServer(application)
 const io = require('socket.io')(server);
 const PORT = process.env.PORT || 3000
 
-let connectedUsers = [];
+const usuarios = {};
 
 application.get('/', (req, res) => {
    res.sendFile(__dirname + '/index.html');
@@ -16,6 +16,42 @@ server.listen(PORT, () => {
 io.on('connection', (socket) => {
 
     socket.on('register', ( username ) => {
+       if ( usuarios[username] ) {
+          socket.emit('login-issue');
+          return;
+       } else {
+          usuarios[username] = socket.id;
+          socket.username = username;
+          socket.emit('login');
+          io.emit('user-connected', usuarios);
+       }
+    });
+ 
+    socket.on('send-message', ({message, image}) => {
+       io.emit('send-message', {message, user: socket.username, image});
+    });
+ 
+    socket.on('send-private-message', ({targetUser, message, image}) => {
+       if ( usuarios[targetUser] ) {
+          io.to(usuarios[targetUser]).emit('send-private-message', { from: socket.username, message, image });
+          io.to(usuarios[socket.username]).emit('send-private-message', { from: socket.username, message, image });
+       }else {
+          socket.emit('send-private-message-issue');
+       }
+    });
+ 
+    socket.on('disconnect', () => {
+       delete usuarios[socket.username];
+       io.emit('user-connected', usuarios);
+    }); 
+ });
+ 
+ 
+ 
+
+/*io.on('connection', (socket) => {
+
+    socket.on('register', ( username ) => {
         if ( connectedUsers[username] ) {
            socket.emit('login-failed');
            console.log('Usuario ya esta conectado - Usuario: ' + username);
@@ -24,7 +60,8 @@ io.on('connection', (socket) => {
            connectedUsers[username] = socket.id;
            socket.username = username;
            socket.emit('login');
-           io.emit('user-connected', connectedUsers);
+           console.log(connectedUsers)
+           socket.emit('user-connected', connectedUsers);
            console.log('Usuario conectado - Usuario: ' + socket.username)
         }
      });
@@ -33,7 +70,7 @@ io.on('connection', (socket) => {
    socket.on('disconnect', () => {
        console.log('Usuario desconectado - Usuario: ' + socket.username);
        connectedUsers = connectedUsers.filter(user => user !== socket.username);
-       io.emit('user list', connectedUsers);
+       io.emit('connected', connectedUsers);
    });
 
    socket.on('new message', (msg) => {
@@ -48,12 +85,12 @@ io.on('connection', (socket) => {
        } else {
             console.log(msg.user)
             console.log(msg.message)
-            //console.log(msg.file)
+            console.log(msg.file)
            io.emit('send message', { message: msg.message, user: socket.username, file: msg.file});
        }
-   });
+   });*/
 
-   socket.on('new user', (usr) => {
+   /*socket.on('new user', (usr) => {
     const userExists = connectedUsers.find((user) => user.toLowerCase() === usr.toLowerCase());
     if (userExists) {
         const validation = true
@@ -67,12 +104,12 @@ io.on('connection', (socket) => {
         console.log('Usuario conectado - Usuario: ' + socket.username);
         io.emit('user validation', validation)
     }
-  });
+  });*/
 
-});
-    setInterval(() => {
+//});
+    /*setInterval(() => {
         io.emit('user list', connectedUsers);
-        }, 1000);
+        }, 1000);*/
     /*let ws;
 let chatForm = document.getElementById("chat-form");
 let chatMessages = document.getElementById("chat-messages");
